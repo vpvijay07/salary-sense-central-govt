@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -26,17 +25,18 @@ const PAY_LEVELS = {
   'Level 10': { min: 56100, max: 177500 },
 };
 
-// DA rates (updates periodically)
+// Updated DA rates
 const DA_RATES = {
-  'Current (42%)': 0.42,
-  'Previous (38%)': 0.38,
+  'Current (50%)': 0.50,
+  'Previous (46%)': 0.46,
+  'Custom': -1, // Special value to indicate custom input
 };
 
-// HRA rates based on city classification
+// Updated HRA rates based on city classification
 const HRA_RATES = {
-  'X Class (24%)': 0.24,
-  'Y Class (16%)': 0.16,
-  'Z Class (8%)': 0.08,
+  'X Class (27%)': 0.27,
+  'Y Class (18%)': 0.18,
+  'Z Class (9%)': 0.09,
 };
 
 // Transport Allowance rates
@@ -48,8 +48,9 @@ const TA_RATES = {
 const SalaryCalculator = () => {
   const [basicPay, setBasicPay] = useState<number>(0);
   const [payLevel, setPayLevel] = useState<string>('Level 1');
-  const [daRate, setDaRate] = useState<string>('Current (42%)');
-  const [hraClass, setHraClass] = useState<string>('X Class (24%)');
+  const [daRate, setDaRate] = useState<string>('Current (50%)');
+  const [customDaRate, setCustomDaRate] = useState<number>(0);
+  const [hraClass, setHraClass] = useState<string>('X Class (27%)');
   const [taType, setTaType] = useState<string>('Normal');
   const [da, setDa] = useState<number>(0);
   const [hra, setHra] = useState<number>(0);
@@ -58,20 +59,24 @@ const SalaryCalculator = () => {
 
   useEffect(() => {
     // Calculate DA
-    const daAmount = basicPay * DA_RATES[daRate as keyof typeof DA_RATES];
+    const effectiveDaRate = daRate === 'Custom' 
+      ? customDaRate / 100 
+      : DA_RATES[daRate as keyof typeof DA_RATES];
+    const daAmount = basicPay * effectiveDaRate;
     setDa(daAmount);
 
     // Calculate HRA
     const hraAmount = basicPay * HRA_RATES[hraClass as keyof typeof HRA_RATES];
     setHra(hraAmount);
 
-    // Set TA
-    const taAmount = TA_RATES[taType as keyof typeof TA_RATES];
-    setTa(taAmount);
+    // Calculate TA with DA
+    const baseTA = TA_RATES[taType as keyof typeof TA_RATES];
+    const taWithDa = baseTA * (1 + effectiveDaRate);
+    setTa(taWithDa);
 
     // Calculate total
-    setTotal(basicPay + daAmount + hraAmount + taAmount);
-  }, [basicPay, daRate, hraClass, taType]);
+    setTotal(basicPay + daAmount + hraAmount + taWithDa);
+  }, [basicPay, daRate, customDaRate, hraClass, taType]);
 
   const handlePayLevelChange = (value: string) => {
     setPayLevel(value);
@@ -139,6 +144,23 @@ const SalaryCalculator = () => {
                 </Select>
               </div>
 
+              {daRate === 'Custom' && (
+                <div>
+                  <Label htmlFor="customDa">Custom DA Rate (%)</Label>
+                  <div className="relative">
+                    <Input
+                      id="customDa"
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Enter DA percentage"
+                      value={customDaRate || ''}
+                      onChange={(e) => setCustomDaRate(Number(e.target.value))}
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <Label htmlFor="hraClass">City Classification</Label>
                 <Select value={hraClass} onValueChange={setHraClass}>
@@ -177,9 +199,18 @@ const SalaryCalculator = () => {
           <Card className="p-6 shadow-lg">
             <h2 className="text-xl font-semibold text-blue-800 mb-4">Salary Components</h2>
             <div className="space-y-4">
-              <ResultRow label="Dearness Allowance (DA)" value={da} rate={daRate} />
+              <ResultRow label="Basic Pay" value={basicPay} />
+              <ResultRow 
+                label="Dearness Allowance (DA)" 
+                value={da} 
+                rate={daRate === 'Custom' ? `${customDaRate}%` : daRate} 
+              />
               <ResultRow label="House Rent Allowance (HRA)" value={hra} rate={hraClass} />
-              <ResultRow label="Transport Allowance (TA)" value={ta} rate={taType} />
+              <ResultRow 
+                label="Transport Allowance (TA with DA)" 
+                value={ta} 
+                rate={taType} 
+              />
               <div className="border-t pt-4 mt-4">
                 <ResultRow label="Total Salary" value={total} isBold={true} />
               </div>
