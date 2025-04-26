@@ -34,9 +34,9 @@ const DA_RATES = {
 
 // Updated HRA rates based on city classification
 const HRA_RATES = {
-  'X Class (27%)': 0.27,
-  'Y Class (18%)': 0.18,
-  'Z Class (9%)': 0.09,
+  'X Class (30%)': 0.30,
+  'Y Class (20%)': 0.20,
+  'Z Class (10%)': 0.10,
 };
 
 // Transport Allowance rates
@@ -50,7 +50,7 @@ const SalaryCalculator = () => {
   const [payLevel, setPayLevel] = useState<string>('Level 1');
   const [daRate, setDaRate] = useState<string>('Current (50%)');
   const [customDaRate, setCustomDaRate] = useState<number>(0);
-  const [hraClass, setHraClass] = useState<string>('X Class (27%)');
+  const [hraClass, setHraClass] = useState<string>('X Class (30%)');
   const [taType, setTaType] = useState<string>('Normal');
   const [da, setDa] = useState<number>(0);
   const [hra, setHra] = useState<number>(0);
