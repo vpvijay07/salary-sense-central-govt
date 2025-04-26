@@ -4,62 +4,171 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { IndianRupee } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Pay Level ranges as per 7th CPC
+const PAY_LEVELS = {
+  'Level 1': { min: 18000, max: 56900 },
+  'Level 2': { min: 19900, max: 63200 },
+  'Level 3': { min: 21700, max: 69100 },
+  'Level 4': { min: 25500, max: 81100 },
+  'Level 5': { min: 29200, max: 92300 },
+  'Level 6': { min: 35400, max: 112400 },
+  'Level 7': { min: 44900, max: 142400 },
+  'Level 8': { min: 47600, max: 151100 },
+  'Level 9': { min: 53100, max: 167800 },
+  'Level 10': { min: 56100, max: 177500 },
+};
+
+// DA rates (updates periodically)
+const DA_RATES = {
+  'Current (42%)': 0.42,
+  'Previous (38%)': 0.38,
+};
+
+// HRA rates based on city classification
+const HRA_RATES = {
+  'X Class (24%)': 0.24,
+  'Y Class (16%)': 0.16,
+  'Z Class (8%)': 0.08,
+};
+
+// Transport Allowance rates
+const TA_RATES = {
+  'Normal': 3600,
+  'High TPTA': 7200,
+};
 
 const SalaryCalculator = () => {
   const [basicPay, setBasicPay] = useState<number>(0);
+  const [payLevel, setPayLevel] = useState<string>('Level 1');
+  const [daRate, setDaRate] = useState<string>('Current (42%)');
+  const [hraClass, setHraClass] = useState<string>('X Class (24%)');
+  const [taType, setTaType] = useState<string>('Normal');
   const [da, setDa] = useState<number>(0);
   const [hra, setHra] = useState<number>(0);
   const [ta, setTa] = useState<number>(0);
   const [total, setTotal] = useState<number>(0);
 
-  // Current DA rate (42% as of 2024)
-  const DA_RATE = 0.42;
-  // HRA rate (24% for X class cities)
-  const HRA_RATE = 0.24;
-  // TA fixed amount (can be adjusted based on city classification)
-  const TA_AMOUNT = 3600;
-
   useEffect(() => {
     // Calculate DA
-    const daAmount = basicPay * DA_RATE;
+    const daAmount = basicPay * DA_RATES[daRate as keyof typeof DA_RATES];
     setDa(daAmount);
 
     // Calculate HRA
-    const hraAmount = basicPay * HRA_RATE;
+    const hraAmount = basicPay * HRA_RATES[hraClass as keyof typeof HRA_RATES];
     setHra(hraAmount);
 
-    // Set TA (fixed amount)
-    setTa(TA_AMOUNT);
+    // Set TA
+    const taAmount = TA_RATES[taType as keyof typeof TA_RATES];
+    setTa(taAmount);
 
     // Calculate total
-    setTotal(basicPay + daAmount + hraAmount + TA_AMOUNT);
-  }, [basicPay]);
+    setTotal(basicPay + daAmount + hraAmount + taAmount);
+  }, [basicPay, daRate, hraClass, taType]);
+
+  const handlePayLevelChange = (value: string) => {
+    setPayLevel(value);
+    setBasicPay(PAY_LEVELS[value as keyof typeof PAY_LEVELS].min);
+  };
 
   return (
     <div className="min-h-screen p-6 bg-blue-50">
       <div className="max-w-4xl mx-auto space-y-6">
         <h1 className="text-3xl font-bold text-center text-blue-900 mb-8">
-          Central Government Salary Calculator
+          7th CPC Salary Calculator
         </h1>
         
         <div className="grid md:grid-cols-2 gap-6">
           {/* Input Section */}
           <Card className="p-6 shadow-lg">
-            <h2 className="text-xl font-semibold text-blue-800 mb-4">Basic Pay Input</h2>
+            <h2 className="text-xl font-semibold text-blue-800 mb-4">Salary Inputs</h2>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="basicPay" className="text-gray-700">Basic Pay</Label>
+                <Label htmlFor="payLevel">Pay Level</Label>
+                <Select value={payLevel} onValueChange={handlePayLevelChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Pay Level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(PAY_LEVELS).map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level} (₹{PAY_LEVELS[level as keyof typeof PAY_LEVELS].min} - ₹{PAY_LEVELS[level as keyof typeof PAY_LEVELS].max})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="basicPay">Basic Pay</Label>
                 <div className="relative">
                   <IndianRupee className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
                   <Input
                     id="basicPay"
                     type="number"
+                    min={PAY_LEVELS[payLevel as keyof typeof PAY_LEVELS].min}
+                    max={PAY_LEVELS[payLevel as keyof typeof PAY_LEVELS].max}
                     placeholder="Enter Basic Pay"
                     className="pl-10"
                     value={basicPay || ''}
                     onChange={(e) => setBasicPay(Number(e.target.value))}
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="daRate">DA Rate</Label>
+                <Select value={daRate} onValueChange={setDaRate}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select DA Rate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(DA_RATES).map((rate) => (
+                      <SelectItem key={rate} value={rate}>
+                        {rate}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="hraClass">City Classification</Label>
+                <Select value={hraClass} onValueChange={setHraClass}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select City Class" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(HRA_RATES).map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="taType">Transport Allowance</Label>
+                <Select value={taType} onValueChange={setTaType}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select TA Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(TA_RATES).map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type} (₹{TA_RATES[type as keyof typeof TA_RATES]})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </Card>
@@ -68,9 +177,9 @@ const SalaryCalculator = () => {
           <Card className="p-6 shadow-lg">
             <h2 className="text-xl font-semibold text-blue-800 mb-4">Salary Components</h2>
             <div className="space-y-4">
-              <ResultRow label="Dearness Allowance (DA)" value={da} rate={`${DA_RATE * 100}%`} />
-              <ResultRow label="House Rent Allowance (HRA)" value={hra} rate={`${HRA_RATE * 100}%`} />
-              <ResultRow label="Transport Allowance (TA)" value={ta} rate="Fixed" />
+              <ResultRow label="Dearness Allowance (DA)" value={da} rate={daRate} />
+              <ResultRow label="House Rent Allowance (HRA)" value={hra} rate={hraClass} />
+              <ResultRow label="Transport Allowance (TA)" value={ta} rate={taType} />
               <div className="border-t pt-4 mt-4">
                 <ResultRow label="Total Salary" value={total} isBold={true} />
               </div>
@@ -81,9 +190,10 @@ const SalaryCalculator = () => {
         <Card className="p-6 shadow-lg mt-6">
           <h2 className="text-xl font-semibold text-blue-800 mb-4">Information</h2>
           <ul className="list-disc list-inside space-y-2 text-gray-700">
-            <li>DA is calculated at {DA_RATE * 100}% of Basic Pay (current rate)</li>
-            <li>HRA is calculated at {HRA_RATE * 100}% of Basic Pay (X class cities)</li>
-            <li>Transport Allowance is fixed at ₹{TA_AMOUNT} per month</li>
+            <li>Basic Pay ranges are as per 7th Pay Commission Pay Matrix</li>
+            <li>DA rates are updated periodically by the government</li>
+            <li>HRA rates: X Class (24%), Y Class (16%), Z Class (8%)</li>
+            <li>Transport Allowance varies for normal cities and cities with higher TPTA rates</li>
           </ul>
         </Card>
       </div>
